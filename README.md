@@ -127,3 +127,16 @@ Enums:
 ## Notes
 
 This MVP uses extensible interfaces for generation logic so an LLM-backed renderer can replace template renderers later without changing the project/generation lifecycle.
+
+
+## Production hardening included
+
+- Environment variable schema validation (`src/lib/env.ts`) with fail-fast behavior in production.
+- Input sanitization and lightweight rate limiting for sensitive endpoints.
+- Middleware redirects for auth-protected app routes and strict admin-role guarding.
+- Global error and loading UI states for resilience and UX.
+- Admin template management API for controlled template lifecycle operations.
+
+## GitHub push
+
+This environment can commit code and prepare PR metadata, but cannot directly authenticate/push to your GitHub remote without credentials configured in the runtime.

@@ -1,11 +1,10 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe/config";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = headers().get("stripe-signature");
+  const signature = req.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!signature || !secret) return NextResponse.json({ error: "Webhook config missing." }, { status: 400 });
@@ -19,10 +18,27 @@ export async function POST(req: Request) {
       if (userId) {
         await prisma.subscription.upsert({
           where: { userId },
-          create: { userId, plan: "PRO", stripeCustomerId: String(session.customer ?? "") },
-          update: { plan: "PRO", stripeCustomerId: String(session.customer ?? "") }
+          create: {
+            userId,
+            plan: "PRO",
+            stripeCustomerId: String(session.customer ?? ""),
+            stripeSubscriptionId: String(session.subscription ?? "")
+          },
+          update: {
+            plan: "PRO",
+            stripeCustomerId: String(session.customer ?? ""),
+            stripeSubscriptionId: String(session.subscription ?? "")
+          }
         });
       }
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object;
+      await prisma.subscription.updateMany({
+        where: { stripeSubscriptionId: subscription.id },
+        data: { plan: "FREE", stripePriceId: null, cancelAtPeriodEnd: true }
+      });
     }
 
     return NextResponse.json({ received: true });
